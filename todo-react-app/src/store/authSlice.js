@@ -1,7 +1,11 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import http from "./../utils/axios-common";
-import { getTodos } from "../utils/todos-services";
-import axios from "axios";
+import {
+  getTodos,
+  addTodoTask,
+  deleteTodo,
+  todoToggle,
+} from "../utils/todos-services";
 
 const initialState = {
   users: [],
@@ -15,6 +19,7 @@ export const fetchTodos = createAsyncThunk(
   async (_, thunkAPI) => {
     console.log("fetching todos....");
     const state = thunkAPI.getState();
+    console.log("STATE");
     console.log(state);
     const auth = {
       username: state.auth.currentLoggedUser.username,
@@ -22,6 +27,54 @@ export const fetchTodos = createAsyncThunk(
     };
     const res = await getTodos(auth);
     console.log(res);
+    return res.data;
+  }
+);
+
+export const createTodoTask = createAsyncThunk(
+  "auth/addTodo",
+  async (task, thunkAPI) => {
+    const state = thunkAPI.getState();
+    const auth = {
+      username: state.auth.currentLoggedUser.username,
+      password: state.auth.currentLoggedUser.password,
+    };
+    const res = await addTodoTask(auth, task);
+    console.log(res);
+    return res.data;
+  }
+);
+
+export const deleteTodoTask = createAsyncThunk(
+  "auth/deleteTodo",
+  async (id, thunkAPI) => {
+    const state = thunkAPI.getState();
+    const auth = {
+      username: state.auth.currentLoggedUser.username,
+      password: state.auth.currentLoggedUser.password,
+    };
+    console.log("delelting todo...");
+    const res = await deleteTodo(auth, id);
+    console.log(res);
+    if (res.status == 200) {
+      console.log(id);
+      return id;
+    }
+  }
+);
+
+export const ToggleTodoTask = createAsyncThunk(
+  "auth/toggle",
+  async (id, thunkAPI) => {
+    const state = thunkAPI.getState();
+    const auth = {
+      username: state.auth.currentLoggedUser.username,
+      password: state.auth.currentLoggedUser.password,
+    };
+    console.log("toggling todo...");
+    const res = await todoToggle(auth, id);
+    console.log(res);
+    console.log(id);
     return res.data;
   }
 );
@@ -56,6 +109,20 @@ const authSlice = createSlice({
     },
     [fetchTodos.fulfilled]: (state, action) => {
       state.todos = action.payload;
+    },
+    [createTodoTask.fulfilled]: (state, action) => {
+      state.todos.push(action.payload);
+    },
+    [deleteTodoTask.fulfilled]: (state, action) => {
+      console.log("deleteing ....");
+      state.todos = state.todos.filter((todo) => todo.id != action.payload);
+    },
+    [ToggleTodoTask.fulfilled]: (state, action) => {
+      console.log("toggglingg...");
+      console.log(action.payload);
+      const todo = state.todos.find((todo) => todo.id == action.payload.id);
+      todo.completed = !todo.completed;
+      state.todos = [...state.todos, todo];
     },
   },
 });
